@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { User } from '../models/user';
-import { hashPassword } from '../utils/hash';
+import { hashPassword, comparePassword } from '../utils/hash';
+import { signToken } from '../utils/jwt';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -52,3 +53,47 @@ export const register = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const login = async (req: Request, res: Response) => {
+  try {
+    // 1️⃣ Extract email, password
+    const { email, password } = req.body;
+
+    // 2️⃣ Validate presence
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // 3️⃣ Normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // 4️⃣ Find user by email
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // 5️⃣ Compare password using comparePassword
+    const isValidPassword = await comparePassword(password, user.passwordHash);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // 6️⃣ If valid → signToken(userId)
+    const accessToken = signToken(user._id.toString());
+
+    // 7️⃣ Return { user, accessToken }
+    return res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+      accessToken,
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

@@ -1,10 +1,18 @@
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 
-export const signToken = (userId: string) => {
-  return jwt.sign({ userId }, env.JWT_SECRET, { expiresIn: "1h" });
+interface JwtPayload {
+  sub: string;
+}
+
+export const signToken = (userId: string): string => {
+  return jwt.sign(
+    { sub: userId },
+    env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 };
 
-export const verifyToken = (token: string) => {
-  return jwt.verify(token, env.JWT_SECRET) as { userId: string };
+export const verifyToken = (token: string): JwtPayload => {
+  return jwt.verify(token, env.JWT_SECRET) as JwtPayload;
 };
