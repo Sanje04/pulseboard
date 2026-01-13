@@ -48,12 +48,6 @@ const userSchema = new Schema<IUser>(
 );
 
 /**
- * Create index on email for faster lookups
- * Ensures email uniqueness at database level
- */
-userSchema.index({ email: 1 }, { unique: true });
-
-/**
  * User model
  * Export for use in controllers and services
  */

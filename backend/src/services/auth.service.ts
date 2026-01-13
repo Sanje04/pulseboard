@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { User } from "../models/user.model";
+import { User } from "../models/user";
 
 export const registerUser = async (
   name: string,
