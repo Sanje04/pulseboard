@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { User } from '../models/user';
 import { hashPassword, comparePassword } from '../utils/hash';
 import { signToken } from '../utils/jwt';
+import { AuthRequest } from "../middleware/requireAuth";
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -97,3 +98,29 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+// Protected route to get current user info
+export const me = async (req: AuthRequest, res: Response) => {
+  try {
+    // 1️⃣ Ensure req.userId is set by requireAuth middleware
+    if (!req.userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    // 2️⃣ Fetch user from DB
+    const user = await User.findById(req.userId).select("_id name email");
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    // 3️⃣ Return user info
+    return res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+    // 4️⃣ Handle errors
+  } catch (error) {
+    console.error("Me error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
