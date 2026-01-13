@@ -2,6 +2,8 @@ import { Router } from "express";
 import { requireAuth } from "../middleware/requireAuth";
 import { createProject, listMyProjects } from "../controllers/project.controller";
 import { requireProjectRole } from "../middleware/requireProjectRole";
+import { inviteMember } from "../controllers/project.controller";
+
 
 const router = Router();
 
@@ -15,6 +17,12 @@ router.get(
   requireAuth,
   requireProjectRole("MEMBER"),
   (req, res) => res.json({ ok: true })
+);
+router.post(
+  "/:projectId/invite",
+  requireAuth,
+  requireProjectRole("OWNER"),
+  inviteMember
 );
 
 export default router;

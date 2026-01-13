@@ -1,8 +1,8 @@
-import { Response } from "express";
-import mongoose from "mongoose";
-import { AuthRequest } from "../middleware/requireAuth";
+import { User } from "../models/user"; // ensure correct path
+import { Membership, Role } from "../models/membership";
 import { Project } from "../models/project";
-import { Membership } from "../models/membership";
+import { AuthRequest } from "../middleware/requireAuth";
+import { Response } from "express";
 
 export const createProject = async (req: AuthRequest, res: Response) => {
   try {
@@ -68,6 +68,63 @@ export const listMyProjects = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("List projects error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const inviteMember = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const { projectId } = req.params;
+    const { email, role } = req.body as { email?: string; role?: Role };
+
+    if (!projectId) return res.status(400).json({ error: "Missing projectId" });
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Optional: validate role
+    const inviteRole: Role = role ?? "VIEWER";
+    if (!["OWNER", "MEMBER", "VIEWER"].includes(inviteRole)) {
+      return res.status(400).json({ error: "Invalid role" });
+    }
+
+    // Ensure project exists (nice-to-have)
+    const projectExists = await Project.exists({ _id: projectId });
+    if (!projectExists) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
+    // Find invited user
+    const invitedUser = await User.findOne({ email: normalizedEmail }).select("_id name email");
+    if (!invitedUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Create membership (unique index prevents duplicates)
+    const membership = await Membership.create({
+      projectId,
+      userId: invitedUser._id,
+      role: inviteRole
+    });
+
+    return res.status(201).json({
+      membership: {
+        id: membership._id,
+        projectId: membership.projectId,
+        userId: membership.userId,
+        role: membership.role
+      }
+    });
+  } catch (error: any) {
+    // Handle duplicate membership nicely
+    if (error?.code === 11000) {
+      return res.status(409).json({ error: "User is already a member of this project" });
+    }
+    console.error("Invite member error:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
