@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth.routes";
 import projectRoutes from "./routes/project.routes";
+import incidentRoutes from "./routes/incident.routes";
+
 
 const app = express();
 
@@ -15,5 +17,6 @@ app.get("/health", (_, res) => {
   res.json({ status: "ok" });
 });
 
+app.use("/api/v1", incidentRoutes);
   
 export default app;
