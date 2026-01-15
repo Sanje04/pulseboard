@@ -3,7 +3,7 @@ import cors from "cors";
 import authRoutes from "./routes/auth.routes";
 import projectRoutes from "./routes/project.routes";
 import incidentRoutes from "./routes/incident.routes";
-
+import incidentUpdateRoutes from "./routes/incidentUpdate.routes";
 
 const app = express();
 
@@ -18,5 +18,8 @@ app.get("/health", (_, res) => {
 });
 
 app.use("/api/v1", incidentRoutes);
+
+app.use("/api/v1", incidentUpdateRoutes);
+
   
 export default app;
