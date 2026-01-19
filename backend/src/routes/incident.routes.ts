@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "../middleware/requireAuth";
 import { requireProjectRole } from "../middleware/requireProjectRole";
 import { createIncident, listIncidents, getIncident } from "../controllers/incident.controller";
+import { getIncidentInProject, updateIncidentInProject } from "../controllers/incident.controller";
 
 const router = Router();
 
@@ -25,6 +26,20 @@ router.get(
   "/incidents/:incidentId",
   requireAuth,
   getIncident
+);
+
+router.get(
+  "/projects/:projectId/incidents/:incidentId",
+  requireAuth,
+  requireProjectRole("VIEWER"),
+  getIncidentInProject
+);
+
+router.patch(
+  "/projects/:projectId/incidents/:incidentId",
+  requireAuth,
+  requireProjectRole("MEMBER"),
+  updateIncidentInProject
 );
 
 export default router;

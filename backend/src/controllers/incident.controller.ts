@@ -121,3 +121,100 @@ export const getIncident = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const getIncidentInProject = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const { projectId, incidentId } = req.params;
+
+    const incident = await Incident.findOne({
+      _id: incidentId,
+      projectId,
+      deletedAt: null
+    }).lean();
+
+    if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+    return res.json({
+      incident: {
+        id: incident._id,
+        projectId: incident.projectId,
+        title: incident.title,
+        description: incident.description,
+        severity: incident.severity,
+        status: incident.status,
+        createdBy: incident.createdBy,
+        createdAt: incident.createdAt,
+        updatedAt: incident.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error("Get incident (project-scoped) error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const updateIncidentInProject = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const { projectId, incidentId } = req.params;
+    const { title, description, severity } = req.body as {
+      title?: string;
+      description?: string;
+      severity?: IncidentSeverity;
+    };
+
+    const incident = await Incident.findOne({
+      _id: incidentId,
+      projectId,
+      deletedAt: null
+    });
+
+    if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+    let changed = false;
+
+    if (typeof title === "string") {
+      const trimmed = title.trim();
+      if (!trimmed) return res.status(400).json({ error: "Title cannot be empty" });
+      incident.title = trimmed;
+      changed = true;
+    }
+
+    if (typeof description === "string") {
+      incident.description = description;
+      changed = true;
+    }
+
+    if (typeof severity === "string") {
+      if (!["SEV1", "SEV2", "SEV3", "SEV4"].includes(severity)) {
+        return res.status(400).json({ error: "Invalid severity" });
+      }
+      incident.severity = severity;
+      changed = true;
+    }
+
+    if (!changed) {
+      return res.status(400).json({ error: "No valid fields to update" });
+    }
+
+    await incident.save();
+
+    return res.json({
+      incident: {
+        id: incident._id,
+        projectId: incident.projectId,
+        title: incident.title,
+        description: incident.description,
+        severity: incident.severity,
+        status: incident.status,
+        updatedAt: incident.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error("Update incident (project-scoped) error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
