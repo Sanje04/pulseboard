@@ -1,9 +1,13 @@
 import { Schema, model, Document, Types } from "mongoose";
 
+// Define the types of incident updates
+// this is used to track comments and changes to incidents
 export type IncidentUpdateType =
   | "COMMENT"
   | "STATUS_CHANGE"
-  | "SEVERITY_CHANGE";
+  | "SEVERITY_CHANGE"
+  | "TITLE_CHANGE"
+  | "DESCRIPTION_CHANGE";
 
 export interface IIncidentUpdate extends Document {
   projectId: Types.ObjectId;
@@ -20,7 +24,11 @@ const incidentUpdateSchema = new Schema<IIncidentUpdate>(
   {
     projectId: { type: Schema.Types.ObjectId, ref: "Project", required: true, index: true },
     incidentId: { type: Schema.Types.ObjectId, ref: "Incident", required: true, index: true },
-    type: { type: String, enum: ["COMMENT", "STATUS_CHANGE", "SEVERITY_CHANGE"], required: true },
+    type: {
+      type: String,
+      enum: ["COMMENT", "STATUS_CHANGE", "SEVERITY_CHANGE", "TITLE_CHANGE", "DESCRIPTION_CHANGE"],
+      required: true
+    },
     message: { type: String, default: "" },
     from: { type: String },
     to: { type: String },

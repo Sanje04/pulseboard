@@ -1,0 +1,13 @@
+Login → get token
+
+Create project
+
+Invite viewer
+
+Create incident (as owner/member)
+
+Update incident (as member)
+
+Viewer can read list/detail but gets 403 on update
+
+View timeline/audit (next step)

@@ -4,7 +4,9 @@ export type AuditEvent =
   | "INCIDENT_CREATED"
   | "INCIDENT_COMMENT_ADDED"
   | "INCIDENT_STATUS_CHANGED"
-  | "INCIDENT_SEVERITY_CHANGED";
+  | "INCIDENT_SEVERITY_CHANGED"
+  | "INCIDENT_TITLE_CHANGED"
+  | "INCIDENT_DESCRIPTION_CHANGED";
 
 export interface IAuditLog extends Document {
   projectId: Types.ObjectId;
@@ -26,7 +28,9 @@ const auditLogSchema = new Schema<IAuditLog>(
         "INCIDENT_CREATED",
         "INCIDENT_COMMENT_ADDED",
         "INCIDENT_STATUS_CHANGED",
-        "INCIDENT_SEVERITY_CHANGED"
+        "INCIDENT_SEVERITY_CHANGED",
+        "INCIDENT_TITLE_CHANGED",
+        "INCIDENT_DESCRIPTION_CHANGED"
       ],
       required: true
     },
