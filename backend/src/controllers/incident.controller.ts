@@ -254,15 +254,13 @@ export const updateIncidentInProject = async (req: AuthRequest, res: Response) =
     }
 
     if (before.description !== after.description) {
-      // Don't store full description in audit metadata if you don’t want to (privacy/size).
-      // We'll store lengths + a preview.
       updatesToCreate.push({
         projectId,
         incidentId,
         type: "DESCRIPTION_CHANGE",
-        message: "",
-        from: before.description,
-        to: after.description,
+        message: after.description.slice(0, 120), // Preview of new description
+        from: String(before.description.length),   // Store length instead of full text
+        to: String(after.description.length),      // Store length instead of full text
         createdBy: req.userId
       });
 
