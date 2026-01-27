@@ -1,15 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { listProjects } from "./projects.api";
+import { useSelectedProject } from "./useSelectedProject";
 
 export function ProjectsPage() {
-  const q = useQuery({
+  const q = useQuery<Awaited<ReturnType<typeof listProjects>>>({
     queryKey: ["projects"],
     queryFn: listProjects,
   });
+  const { projectId, setProjectId } = useSelectedProject();
 
   if (q.isLoading) return <div className="text-sm text-muted-foreground">Loading projects…</div>;
   if (q.isError) return <div className="text-sm text-red-500">{(q.error as Error).message}</div>;
-
+  
   return (
     <div className="space-y-4">
       <div>
@@ -19,7 +21,13 @@ export function ProjectsPage() {
 
       <div className="grid gap-3">
         {q.data.items.map((p) => (
-          <div key={p.id} className="rounded-xl border p-4 hover:bg-muted/40 transition">
+          <div
+            key={p.id}
+            onClick={() => setProjectId(p.id)}
+            className={`cursor-pointer rounded-xl border p-4 transition ${
+              projectId === p.id ? "bg-muted/50 border-muted-foreground/30" : "hover:bg-muted/30"
+            }`}
+          >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="font-medium">{p.name}</div>
