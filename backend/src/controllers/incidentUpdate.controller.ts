@@ -124,6 +124,7 @@ export const getIncidentTimeline = async (req: AuthRequest, res: Response) => {
     if (!incident) return res.status(404).json({ error: "Incident not found" });
 
     const updates = await IncidentUpdate.find({ projectId, incidentId })
+      .populate('createdBy', 'name email')
       .sort({ createdAt: -1 })
       .lean();
 

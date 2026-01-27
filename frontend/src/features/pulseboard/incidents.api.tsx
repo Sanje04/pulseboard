@@ -9,11 +9,17 @@ export interface Incident {
 }
 
 export type IncidentSeverity = "SEV1" | "SEV2" | "SEV3" | "SEV4";
+export type IncidentStatus = "OPEN" | "MITIGATING" | "RESOLVED";
 
 export interface CreateIncidentInput {
   title: string;
   description?: string;
   severity: IncidentSeverity;
+}
+
+export interface UpdateIncidentInput {
+  status?: IncidentStatus;
+  severity?: IncidentSeverity;
 }
 
 export function listIncidents(projectId: string) {
@@ -45,5 +51,12 @@ export function createIncident(projectId: string, input: CreateIncidentInput) {
 export function deleteIncident(projectId: string, incidentId: string) {
   return api<{ ok: true }>(`/projects/${projectId}/incidents/${incidentId}`, {
     method: "DELETE",
+  });
+}
+
+export function updateIncident(projectId: string, incidentId: string, input: UpdateIncidentInput) {
+  return api<{ incident: Incident }>(`/projects/${projectId}/incidents/${incidentId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
   });
 }

@@ -1,17 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listIncidents, getIncident, getIncidentTimeline, addComment, createIncident, deleteIncident, type IncidentSeverity } from "./incidents.api";
+import { listIncidents, getIncident, getIncidentTimeline, addComment, createIncident, deleteIncident, updateIncident, type IncidentSeverity, type IncidentStatus } from "./incidents.api";
 import { useSelectedProject } from "./useSelectedProject";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, AlertCircle, User, MessageSquare, ArrowRightLeft, AlertTriangle } from "lucide-react";
 
-export function IncidentsPage() {
-  const { projectId, currentProject } = useSelectedProject();
-  const [incidentId, setIncidentId] = useState<string | null>(null);
+type IncidentsPageProps = {
+  projectId?: string;
+  initialIncidentId?: string;
+};
+
+export function IncidentsPage({ projectId: projectIdFromRoute, initialIncidentId }: IncidentsPageProps) {
+  const { projectId, currentProject } = useSelectedProject(projectIdFromRoute);
+  const [incidentId, setIncidentId] = useState<string | null>(() => initialIncidentId ?? null);
   const [comment, setComment] = useState("");
   const [posting, setPosting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [pendingUpdates, setPendingUpdates] = useState<{ status?: IncidentStatus; severity?: IncidentSeverity } | null>(null);
   const queryClient = useQueryClient();
 
   const [newIncident, setNewIncident] = useState({
@@ -19,6 +25,12 @@ export function IncidentsPage() {
     description: "",
     severity: "SEV3" as IncidentSeverity,
   });
+
+  // Keep local incident selection in sync with URL-driven initialIncidentId
+  useEffect(() => {
+    setIncidentId(initialIncidentId ?? null);
+    setPendingUpdates(null);
+  }, [initialIncidentId]);
 
   const incidentsQ = useQuery({
     queryKey: ["incidents", projectId],
@@ -34,7 +46,11 @@ export function IncidentsPage() {
 
   const timelineQ = useQuery({
     queryKey: ["timeline", projectId, incidentId],
-    queryFn: () => getIncidentTimeline(projectId!, incidentId!),
+    queryFn: async () => {
+      const result = await getIncidentTimeline(projectId!, incidentId!);
+      console.log('📋 Timeline data:', result);
+      return result;
+    },
     enabled: Boolean(projectId && incidentId),
   });
 
@@ -83,7 +99,31 @@ export function IncidentsPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ incidentId, updates }: { incidentId: string; updates: { status?: IncidentStatus; severity?: IncidentSeverity } }) => {
+      console.log('✏️ Updating incident:', { incidentId, updates });
+      return updateIncident(projectId!, incidentId, updates);
+    },
+    onSuccess: () => {
+      console.log('✅ Incident updated - Refetching timeline...');
+      queryClient.invalidateQueries({ queryKey: ["incident", projectId, incidentId] });
+      queryClient.invalidateQueries({ queryKey: ["timeline", projectId, incidentId] });
+      queryClient.invalidateQueries({ queryKey: ["incidents", projectId] });
+      
+      // Force refetch timeline to see new changes
+      setTimeout(() => {
+        timelineQ.refetch().then((result) => {
+          console.log('🔄 Timeline refetched:', result.data);
+        });
+      }, 500);
+    },
+    onError: (err) => {
+      console.error('❌ Failed to update incident:', err);
+    },
+  });
+
   const canCreateIncident = currentProject?.role === "OWNER" || currentProject?.role === "MEMBER";
+  const canEditIncident = canCreateIncident;
 
   if (!projectId) {
     return <div className="text-sm text-muted-foreground">Select a project first.</div>;
@@ -263,7 +303,10 @@ export function IncidentsPage() {
             }`}
           >
             <button
-              onClick={() => setIncidentId(i.id)}
+              onClick={() => {
+                setIncidentId(i.id);
+                setPendingUpdates(null); // Clear pending updates when switching incidents
+              }}
               className="w-full text-left hover:opacity-80 transition"
             >
               <div className="font-medium pr-8">{i.title}</div>
@@ -299,15 +342,105 @@ export function IncidentsPage() {
             {detailQ.isError && <div className="text-sm text-red-500">{(detailQ.error as Error).message}</div>}
 
             {detailQ.data?.incident && (
-              <div className="rounded-xl border p-4">
-                <div className="font-semibold">{detailQ.data.incident.title}</div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  {detailQ.data.incident.severity} • {detailQ.data.incident.status}
-                </div>
-                {detailQ.data.incident.description && (
-                  <div className="text-sm mt-3">{detailQ.data.incident.description}</div>
+              <>
+                {/* Read-only callout for viewers */}
+                {!canEditIncident && (
+                  <div className="rounded-lg border border-blue-900 bg-blue-950 bg-opacity-20 p-3 flex items-start gap-2">
+                    <AlertCircle size={16} className="text-blue-400 mt-0.5 shrink-0" />
+                    <div className="text-sm text-blue-400">
+                      <strong>Read-only:</strong> You can view this incident but cannot make changes.
+                    </div>
+                  </div>
                 )}
-              </div>
+
+                <div className="rounded-xl border p-4 space-y-4">
+                  <div className="font-semibold">{detailQ.data.incident.title}</div>
+                  
+                  {/* Status and Severity Controls */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Status Dropdown */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">Status</label>
+                      <select
+                        value={pendingUpdates?.status ?? detailQ.data.incident.status}
+                        onChange={(e) => {
+                          setPendingUpdates(prev => ({
+                            ...prev,
+                            status: e.target.value as IncidentStatus
+                          }));
+                        }}
+                        disabled={!canEditIncident || updateMutation.isPending}
+                        className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <option value="OPEN">Open</option>
+                        <option value="MITIGATING">Mitigating</option>
+                        <option value="RESOLVED">Resolved</option>
+                      </select>
+                    </div>
+
+                    {/* Severity Dropdown */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">Severity</label>
+                      <select
+                        value={pendingUpdates?.severity ?? detailQ.data.incident.severity}
+                        onChange={(e) => {
+                          setPendingUpdates(prev => ({
+                            ...prev,
+                            severity: e.target.value as IncidentSeverity
+                          }));
+                        }}
+                        disabled={!canEditIncident || updateMutation.isPending}
+                        className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <option value="SEV1">SEV1 - Critical</option>
+                        <option value="SEV2">SEV2 - High</option>
+                        <option value="SEV3">SEV3 - Medium</option>
+                        <option value="SEV4">SEV4 - Low</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Save/Cancel buttons - show when there are pending changes */}
+                  {pendingUpdates && canEditIncident && (
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        onClick={() => {
+                          updateMutation.mutate(
+                            { incidentId: incidentId!, updates: pendingUpdates },
+                            {
+                              onSuccess: () => {
+                                setPendingUpdates(null);
+                              }
+                            }
+                          );
+                        }}
+                        disabled={
+                          updateMutation.isPending ||
+                          (pendingUpdates.status === detailQ.data.incident.status &&
+                           pendingUpdates.severity === detailQ.data.incident.severity)
+                        }
+                        className="flex-1 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                      </button>
+                      <button
+                        onClick={() => setPendingUpdates(null)}
+                        disabled={updateMutation.isPending}
+                        className="px-4 py-2 text-sm rounded-lg border hover:bg-muted/30 transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+
+                  {detailQ.data.incident.description && (
+                    <div className="pt-2 border-t">
+                      <div className="text-xs font-medium text-muted-foreground mb-1.5">Description</div>
+                      <div className="text-sm">{detailQ.data.incident.description}</div>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
 
             <div className="rounded-xl border p-4">
@@ -317,15 +450,90 @@ export function IncidentsPage() {
               {timelineQ.isError && <div className="text-sm text-red-500">{(timelineQ.error as Error).message}</div>}
 
               <div className="space-y-2">
-                {(timelineQ.data?.items ?? []).map((t: any) => (
-                  <div key={t.id} className="rounded-lg border p-3">
-                    <div className="text-sm font-medium">{t.type}</div>
-                    {t.message && <div className="text-sm text-muted-foreground mt-1">{t.message}</div>}
-                    <div className="text-xs text-muted-foreground mt-2">
-                      {new Date(t.createdAt).toLocaleString()}
+                {(timelineQ.data?.items ?? []).map((t: any) => {
+                  // Helper function to get icon and label for event type
+                  const getEventDisplay = () => {
+                    switch (t.type) {
+                      case "STATUS_CHANGE":
+                        return {
+                          icon: <ArrowRightLeft size={14} className="text-blue-500" />,
+                          label: "Status changed",
+                          showBadges: true
+                        };
+                      case "SEVERITY_CHANGE":
+                        return {
+                          icon: <AlertTriangle size={14} className="text-orange-500" />,
+                          label: "Severity changed",
+                          showBadges: true
+                        };
+                      case "COMMENT":
+                        return {
+                          icon: <MessageSquare size={14} className="text-green-500" />,
+                          label: "Comment added",
+                          showBadges: false
+                        };
+                      case "TITLE_CHANGE":
+                        return {
+                          icon: <ArrowRightLeft size={14} className="text-purple-500" />,
+                          label: "Title changed",
+                          showBadges: true
+                        };
+                      case "DESCRIPTION_CHANGE":
+                        return {
+                          icon: <ArrowRightLeft size={14} className="text-gray-500" />,
+                          label: "Description changed",
+                          showBadges: false
+                        };
+                      default:
+                        return {
+                          icon: <MessageSquare size={14} className="text-muted-foreground" />,
+                          label: t.type,
+                          showBadges: false
+                        };
+                    }
+                  };
+
+                  const eventDisplay = getEventDisplay();
+                  
+                  return (
+                    <div key={t.id} className="rounded-lg border p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          {eventDisplay.icon}
+                          <span className="text-sm font-medium">{eventDisplay.label}</span>
+                        </div>
+                        {t.createdBy && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <User size={14} />
+                            <span>{typeof t.createdBy === 'string' ? t.createdBy : t.createdBy.name || t.createdBy.email}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Show from/to badges for changes */}
+                      {eventDisplay.showBadges && t.from && t.to && (
+                        <div className="flex items-center gap-2 mt-2 text-sm">
+                          <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground font-mono text-xs">
+                            {t.from}
+                          </span>
+                          <span className="text-muted-foreground">→</span>
+                          <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-mono text-xs">
+                            {t.to}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Show message for comments or other events without badges */}
+                      {t.message && !eventDisplay.showBadges && (
+                        <div className="text-sm text-muted-foreground mt-2 pl-6">{t.message}</div>
+                      )}
+                      
+                      <div className="text-xs text-muted-foreground mt-2">
+                        {new Date(t.createdAt).toLocaleString()}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* comment */}

@@ -197,10 +197,11 @@ export const updateIncidentInProject = async (req: AuthRequest, res: Response) =
     if (!req.userId) return res.status(401).json({ error: "Unauthorized" });
 
     const { projectId, incidentId } = req.params;
-    const { title, description, severity } = req.body as {
+    const { title, description, severity, status } = req.body as {
       title?: string;
       description?: string;
       severity?: IncidentSeverity;
+      status?: IncidentStatus;
     };
 
     const incident = await Incident.findOne({
@@ -215,7 +216,8 @@ export const updateIncidentInProject = async (req: AuthRequest, res: Response) =
     const before = {
       title: incident.title,
       description: incident.description ?? "",
-      severity: incident.severity
+      severity: incident.severity,
+      status: incident.status
     };
 
     // Apply changes (validate along the way)
@@ -247,6 +249,16 @@ export const updateIncidentInProject = async (req: AuthRequest, res: Response) =
       }
     }
 
+    if (typeof status === "string") {
+      if (!["OPEN", "MITIGATING", "RESOLVED"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      if (status !== incident.status) {
+        incident.status = status;
+        changed = true;
+      }
+    }
+
     if (!changed) {
       return res.status(400).json({ error: "No valid fields to update" });
     }
@@ -258,7 +270,8 @@ export const updateIncidentInProject = async (req: AuthRequest, res: Response) =
     const after = {
       title: incident.title,
       description: incident.description ?? "",
-      severity: incident.severity
+      severity: incident.severity,
+      status: incident.status
     };
 
     // Build timeline updates + audit events for each changed field
@@ -329,6 +342,27 @@ export const updateIncidentInProject = async (req: AuthRequest, res: Response) =
         entityType: "INCIDENT",
         entityId: incidentId,
         metadata: { from: before.severity, to: after.severity }
+      });
+    }
+
+    if (before.status !== after.status) {
+      updatesToCreate.push({
+        projectId,
+        incidentId,
+        type: "STATUS_CHANGE",
+        message: "",
+        from: before.status,
+        to: after.status,
+        createdBy: req.userId
+      });
+
+      auditsToCreate.push({
+        projectId,
+        actorId: req.userId,
+        event: "INCIDENT_STATUS_CHANGED",
+        entityType: "INCIDENT",
+        entityId: incidentId,
+        metadata: { from: before.status, to: after.status }
       });
     }
 

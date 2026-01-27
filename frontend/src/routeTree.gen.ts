@@ -41,6 +41,9 @@ import { Route as AuthenticatedSettingsDisplayRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
+import { Route as AuthenticatedProjectsProjectIdAuditRouteImport } from './routes/_authenticated/projects/$projectId/audit'
+import { Route as AuthenticatedProjectsProjectIdIncidentsIndexRouteImport } from './routes/_authenticated/projects/$projectId/incidents/index'
+import { Route as AuthenticatedProjectsProjectIdIncidentsIncidentIdRouteImport } from './routes/_authenticated/projects/$projectId/incidents/$incidentId'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -208,6 +211,24 @@ const AuthenticatedErrorsErrorRoute =
     path: '/errors/$error',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedProjectsProjectIdAuditRoute =
+  AuthenticatedProjectsProjectIdAuditRouteImport.update({
+    id: '/$projectId/audit',
+    path: '/$projectId/audit',
+    getParentRoute: () => AuthenticatedProjectsRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdIncidentsIndexRoute =
+  AuthenticatedProjectsProjectIdIncidentsIndexRouteImport.update({
+    id: '/$projectId/incidents/',
+    path: '/$projectId/incidents/',
+    getParentRoute: () => AuthenticatedProjectsRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdIncidentsIncidentIdRoute =
+  AuthenticatedProjectsProjectIdIncidentsIncidentIdRouteImport.update({
+    id: '/$projectId/incidents/$incidentId',
+    path: '/$projectId/incidents/$incidentId',
+    getParentRoute: () => AuthenticatedProjectsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -224,7 +245,7 @@ export interface FileRoutesByFullPath {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/incidents': typeof AuthenticatedIncidentsRoute
-  '/projects': typeof AuthenticatedProjectsRoute
+  '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -239,6 +260,9 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
+  '/projects/$projectId/audit': typeof AuthenticatedProjectsProjectIdAuditRoute
+  '/projects/$projectId/incidents/$incidentId': typeof AuthenticatedProjectsProjectIdIncidentsIncidentIdRoute
+  '/projects/$projectId/incidents/': typeof AuthenticatedProjectsProjectIdIncidentsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -254,7 +278,7 @@ export interface FileRoutesByTo {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/incidents': typeof AuthenticatedIncidentsRoute
-  '/projects': typeof AuthenticatedProjectsRoute
+  '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -269,6 +293,9 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
+  '/projects/$projectId/audit': typeof AuthenticatedProjectsProjectIdAuditRoute
+  '/projects/$projectId/incidents/$incidentId': typeof AuthenticatedProjectsProjectIdIncidentsIncidentIdRoute
+  '/projects/$projectId/incidents': typeof AuthenticatedProjectsProjectIdIncidentsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -289,7 +316,7 @@ export interface FileRoutesById {
   '/(errors)/500': typeof errors500Route
   '/(errors)/503': typeof errors503Route
   '/_authenticated/incidents': typeof AuthenticatedIncidentsRoute
-  '/_authenticated/projects': typeof AuthenticatedProjectsRoute
+  '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -304,6 +331,9 @@ export interface FileRoutesById {
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
+  '/_authenticated/projects/$projectId/audit': typeof AuthenticatedProjectsProjectIdAuditRoute
+  '/_authenticated/projects/$projectId/incidents/$incidentId': typeof AuthenticatedProjectsProjectIdIncidentsIncidentIdRoute
+  '/_authenticated/projects/$projectId/incidents/': typeof AuthenticatedProjectsProjectIdIncidentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -337,6 +367,9 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/tasks/'
     | '/users/'
+    | '/projects/$projectId/audit'
+    | '/projects/$projectId/incidents/$incidentId'
+    | '/projects/$projectId/incidents/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -367,6 +400,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/users'
+    | '/projects/$projectId/audit'
+    | '/projects/$projectId/incidents/$incidentId'
+    | '/projects/$projectId/incidents'
   id:
     | '__root__'
     | '/'
@@ -401,6 +437,9 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/'
     | '/_authenticated/tasks/'
     | '/_authenticated/users/'
+    | '/_authenticated/projects/$projectId/audit'
+    | '/_authenticated/projects/$projectId/incidents/$incidentId'
+    | '/_authenticated/projects/$projectId/incidents/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -645,6 +684,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedErrorsErrorRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/projects/$projectId/audit': {
+      id: '/_authenticated/projects/$projectId/audit'
+      path: '/$projectId/audit'
+      fullPath: '/projects/$projectId/audit'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdAuditRouteImport
+      parentRoute: typeof AuthenticatedProjectsRoute
+    }
+    '/_authenticated/projects/$projectId/incidents/': {
+      id: '/_authenticated/projects/$projectId/incidents/'
+      path: '/$projectId/incidents'
+      fullPath: '/projects/$projectId/incidents/'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIncidentsIndexRouteImport
+      parentRoute: typeof AuthenticatedProjectsRoute
+    }
+    '/_authenticated/projects/$projectId/incidents/$incidentId': {
+      id: '/_authenticated/projects/$projectId/incidents/$incidentId'
+      path: '/$projectId/incidents/$incidentId'
+      fullPath: '/projects/$projectId/incidents/$incidentId'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIncidentsIncidentIdRouteImport
+      parentRoute: typeof AuthenticatedProjectsRoute
+    }
   }
 }
 
@@ -714,10 +774,30 @@ const AuthenticatedSettingsRouteRouteWithChildren =
     AuthenticatedSettingsRouteRouteChildren,
   )
 
+interface AuthenticatedProjectsRouteChildren {
+  AuthenticatedProjectsProjectIdAuditRoute: typeof AuthenticatedProjectsProjectIdAuditRoute
+  AuthenticatedProjectsProjectIdIncidentsIncidentIdRoute: typeof AuthenticatedProjectsProjectIdIncidentsIncidentIdRoute
+  AuthenticatedProjectsProjectIdIncidentsIndexRoute: typeof AuthenticatedProjectsProjectIdIncidentsIndexRoute
+}
+
+const AuthenticatedProjectsRouteChildren: AuthenticatedProjectsRouteChildren = {
+  AuthenticatedProjectsProjectIdAuditRoute:
+    AuthenticatedProjectsProjectIdAuditRoute,
+  AuthenticatedProjectsProjectIdIncidentsIncidentIdRoute:
+    AuthenticatedProjectsProjectIdIncidentsIncidentIdRoute,
+  AuthenticatedProjectsProjectIdIncidentsIndexRoute:
+    AuthenticatedProjectsProjectIdIncidentsIndexRoute,
+}
+
+const AuthenticatedProjectsRouteWithChildren =
+  AuthenticatedProjectsRoute._addFileChildren(
+    AuthenticatedProjectsRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedSettingsRouteRoute: typeof AuthenticatedSettingsRouteRouteWithChildren
   AuthenticatedIncidentsRoute: typeof AuthenticatedIncidentsRoute
-  AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
+  AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedAppsIndexRoute: typeof AuthenticatedAppsIndexRoute
   AuthenticatedChatsIndexRoute: typeof AuthenticatedChatsIndexRoute
@@ -729,7 +809,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSettingsRouteRoute: AuthenticatedSettingsRouteRouteWithChildren,
   AuthenticatedIncidentsRoute: AuthenticatedIncidentsRoute,
-  AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
+  AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedAppsIndexRoute: AuthenticatedAppsIndexRoute,
   AuthenticatedChatsIndexRoute: AuthenticatedChatsIndexRoute,

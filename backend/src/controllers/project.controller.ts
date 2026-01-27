@@ -128,3 +128,30 @@ export const inviteMember = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const getProjectUsers = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const { projectId } = req.params;
+
+    // Fetch all memberships for this project and populate user details
+    const memberships = await Membership.find({ projectId })
+      .populate('userId', 'name email')
+      .sort({ createdAt: 1 })
+      .lean();
+
+    return res.json({
+      users: memberships.map((m: any) => ({
+        id: m.userId._id,
+        name: m.userId.name,
+        email: m.userId.email,
+        role: m.role,
+        joinedAt: m.createdAt
+      }))
+    });
+  } catch (error) {
+    console.error("Get project users error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
