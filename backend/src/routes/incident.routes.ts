@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/requireAuth";
 import { requireProjectRole } from "../middleware/requireProjectRole";
-import { createIncident, listIncidents, getIncident } from "../controllers/incident.controller";
+import { createIncident, listIncidents, getIncident, deleteIncidentInProject } from "../controllers/incident.controller";
 import { getIncidentInProject, updateIncidentInProject } from "../controllers/incident.controller";
 
 const router = Router();
@@ -40,6 +40,13 @@ router.patch(
   requireAuth,
   requireProjectRole("MEMBER"),
   updateIncidentInProject
+);
+
+router.delete(
+  "/projects/:projectId/incidents/:incidentId",
+  requireAuth,
+  requireProjectRole("MEMBER"),
+  deleteIncidentInProject
 );
 
 export default router;

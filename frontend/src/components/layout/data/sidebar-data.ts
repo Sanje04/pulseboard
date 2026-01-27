@@ -22,6 +22,7 @@ import {
   Command,
   GalleryVerticalEnd,
   FolderKanban,
+  AlertTriangle,
 } from 'lucide-react'
 import { ClerkLogo } from '@/assets/clerk-logo'
 import { type SidebarData } from '../types'
@@ -55,8 +56,13 @@ export const sidebarData: SidebarData = {
       items: [
         {
           title: 'Projects',
-          url: '/',
+          url: '/projects',
           icon: FolderKanban,
+        },
+        {
+          title: 'Incidents',
+          url: '/incidents',
+          icon: AlertTriangle,
         },
         {
           title: 'Tasks',

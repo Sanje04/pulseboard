@@ -28,7 +28,7 @@ export const createIncident = async (req: AuthRequest, res: Response) => {
       title: title.trim(),
       description: description || "",
       severity,
-      status: "INVESTIGATING",
+      status: "OPEN",
       createdBy: req.userId
     });
 
@@ -125,6 +125,39 @@ export const getIncident = async (req: AuthRequest, res: Response) => {
     console.error("Get incident error:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
+};
+
+export const deleteIncidentInProject = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Unauthorized" });
+    const { projectId, incidentId } = req.params;
+    const incident = await Incident.findOne({
+      _id: incidentId,
+      projectId,
+      deletedAt: null
+    });
+    if (!incident) return res.status(404).json({ error: "Incident not found" });
+    incident.deletedAt = new Date();
+    await incident.save();
+    await IncidentUpdate.create({
+      projectId,
+      incidentId,
+      type: "DELETED",
+      message: "Incident deleted",
+      createdBy: req.userId
+    });
+    await AuditLog.create({
+      projectId,
+      actorId: req.userId,
+      event: "INCIDENT_DELETED",
+      entityType: "INCIDENT",
+      entityId: incidentId
+    });
+    return res.json({ message: "Incident deleted successfully" });
+  } catch (error) {
+    console.error("Delete incident (project-scoped) error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  } 
 };
 
 export const getIncidentInProject = async (req: AuthRequest, res: Response) => {

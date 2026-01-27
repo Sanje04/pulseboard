@@ -47,25 +47,6 @@ function AuthenticatedLayout() {
             </Header>
 
             <Main>
-              <div className='mb-6'>
-                <div className='flex gap-4 border-b'>
-                  <Link
-                    to='/projects'
-                    className='px-4 py-2 text-sm font-medium transition [&.active]:border-b-2 [&.active]:border-primary [&.active]:text-primary text-muted-foreground hover:text-foreground'
-                    activeProps={{ className: 'active' }}
-                  >
-                    Projects
-                  </Link>
-                  <Link
-                    to='/incidents'
-                    className='px-4 py-2 text-sm font-medium transition [&.active]:border-b-2 [&.active]:border-primary [&.active]:text-primary text-muted-foreground hover:text-foreground'
-                    activeProps={{ className: 'active' }}
-                  >
-                    Incidents
-                  </Link>
-                </div>
-              </div>
-
               <Outlet />
             </Main>
           </SidebarInset>

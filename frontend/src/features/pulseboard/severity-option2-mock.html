@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Option 2: Radio Button Cards</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(240 3.7% 15.9%)",
+                        background: "hsl(240 10% 3.9%)",
+                        foreground: "hsl(0 0% 98%)",
+                        muted: {
+                            DEFAULT: "hsl(240 3.7% 15.9%)",
+                            foreground: "hsl(240 5% 64.9%)"
+                        },
+                        primary: {
+                            DEFAULT: "hsl(142.1 76.2% 36.3%)",
+                            foreground: "hsl(355.7 100% 97.3%)"
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: hsl(240 10% 3.9%);
+            color: hsl(0 0% 98%);
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-md mx-auto space-y-8">
+        <!-- Header -->
+        <div>
+            <h1 class="text-2xl font-bold mb-2">Option 2: Radio Button Cards</h1>
+            <p class="text-sm text-gray-400">Visual, color-coded, touch-friendly</p>
+        </div>
+
+        <!-- Mock Form -->
+        <div class="rounded-lg border border-gray-800 bg-gray-950 p-6 space-y-6">
+            <h2 class="text-lg font-semibold">Create New Incident</h2>
+
+            <!-- Title Field -->
+            <div class="space-y-2">
+                <label class="text-sm font-medium">
+                    Title <span class="text-red-500">*</span>
+                </label>
+                <input
+                    type="text"
+                    class="w-full rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 text-sm"
+                    placeholder="Brief description of the incident"
+                    value="Database connection timeout"
+                />
+            </div>
+
+            <!-- Description Field -->
+            <div class="space-y-2">
+                <label class="text-sm font-medium">Description</label>
+                <textarea
+                    class="w-full rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 text-sm min-h-20"
+                    placeholder="Additional details..."
+                >Users are experiencing 503 errors when trying to access the dashboard.</textarea>
+            </div>
+
+            <!-- SEVERITY - OPTION 2 RADIO CARDS -->
+            <div class="space-y-2">
+                <label class="text-sm font-medium">
+                    Severity <span class="text-red-500">*</span>
+                </label>
+                <div class="grid grid-cols-2 gap-2">
+                    <!-- SEV1 -->
+                    <label class="cursor-pointer rounded-lg border-2 border-red-500 p-3 transition hover:bg-red-950 bg-opacity-10">
+                        <input type="radio" name="severity" value="SEV1" class="sr-only" />
+                        <div class="font-medium text-sm text-red-400">SEV1</div>
+                        <div class="text-xs text-gray-400">Critical</div>
+                    </label>
+
+                    <!-- SEV2 -->
+                    <label class="cursor-pointer rounded-lg border-2 border-orange-500 p-3 transition hover:bg-orange-950 bg-opacity-10">
+                        <input type="radio" name="severity" value="SEV2" class="sr-only" />
+                        <div class="font-medium text-sm text-orange-400">SEV2</div>
+                        <div class="text-xs text-gray-400">High</div>
+                    </label>
+
+                    <!-- SEV3 - SELECTED -->
+                    <label class="cursor-pointer rounded-lg border-2 border-yellow-500 border-opacity-100 bg-yellow-950 bg-opacity-20 p-3 transition">
+                        <input type="radio" name="severity" value="SEV3" checked class="sr-only" />
+                        <div class="font-medium text-sm text-yellow-400">SEV3</div>
+                        <div class="text-xs text-gray-400">Medium</div>
+                    </label>
+
+                    <!-- SEV4 -->
+                    <label class="cursor-pointer rounded-lg border-2 border-blue-500 p-3 transition hover:bg-blue-950 bg-opacity-10">
+                        <input type="radio" name="severity" value="SEV4" class="sr-only" />
+                        <div class="font-medium text-sm text-blue-400">SEV4</div>
+                        <div class="text-xs text-gray-400">Low</div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex justify-end gap-2 pt-4">
+                <button class="px-4 py-2 text-sm rounded-lg border border-gray-800 hover:bg-gray-900 transition">
+                    Cancel
+                </button>
+                <button class="px-4 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 transition">
+                    Create Incident
+                </button>
+            </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="rounded-lg border border-blue-900 bg-blue-950 bg-opacity-20 p-4">
+            <div class="font-medium text-sm text-blue-400 mb-1">✨ Benefits</div>
+            <ul class="text-xs text-gray-400 space-y-1">
+                <li>• Clear visual separation between options</li>
+                <li>• Color-coded for quick identification</li>
+                <li>• Large touch targets (mobile-friendly)</li>
+                <li>• Shows all options at once</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Make it interactive
+        document.querySelectorAll('label[class*="cursor-pointer"]').forEach(label => {
+            label.addEventListener('click', function() {
+                // Remove selected state from all
+                document.querySelectorAll('label[class*="cursor-pointer"]').forEach(l => {
+                    l.className = l.className
+                        .replace('border-opacity-100', '')
+                        .replace(/bg-\w+-950 bg-opacity-20/g, '')
+                        .trim();
+                    if (!l.className.includes('hover:bg-')) {
+                        const color = l.className.match(/border-(\w+)-500/)?.[1];
+                        if (color) {
+                            l.className += ` hover:bg-${color}-950`;
+                        }
+                    }
+                });
+                
+                // Add selected state to clicked
+                const color = this.className.match(/border-(\w+)-500/)?.[1];
+                if (color) {
+                    this.className = this.className.replace(/hover:bg-\w+-950/g, '');
+                    this.className += ` border-opacity-100 bg-${color}-950 bg-opacity-20`;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

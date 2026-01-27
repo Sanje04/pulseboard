@@ -7,7 +7,9 @@ export type IncidentUpdateType =
   | "STATUS_CHANGE"
   | "SEVERITY_CHANGE"
   | "TITLE_CHANGE"
-  | "DESCRIPTION_CHANGE";
+  | "DESCRIPTION_CHANGE"
+  | "DELETED"
+  | "CREATED";
 
 export interface IIncidentUpdate extends Document {
   projectId: Types.ObjectId;
@@ -26,7 +28,7 @@ const incidentUpdateSchema = new Schema<IIncidentUpdate>(
     incidentId: { type: Schema.Types.ObjectId, ref: "Incident", required: true, index: true },
     type: {
       type: String,
-      enum: ["COMMENT", "STATUS_CHANGE", "SEVERITY_CHANGE", "TITLE_CHANGE", "DESCRIPTION_CHANGE"],
+      enum: ["COMMENT", "STATUS_CHANGE", "SEVERITY_CHANGE", "TITLE_CHANGE", "DESCRIPTION_CHANGE", "DELETED", "CREATED"],
       required: true
     },
     message: { type: String, default: "" },

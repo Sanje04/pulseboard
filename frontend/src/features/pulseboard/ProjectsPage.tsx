@@ -14,9 +14,19 @@ export function ProjectsPage() {
   
   return (
     <div className="space-y-4">
-      <div>
-        <div className="text-2xl font-semibold">Projects</div>
-        <div className="text-sm text-muted-foreground">Select a project to view incidents.</div>
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="text-2xl font-semibold">Projects</div>
+          <div className="text-sm text-muted-foreground">Select a project to view incidents.</div>
+        </div>
+        {projectId && (
+          <button
+            onClick={() => setProjectId(null)}
+            className="text-sm px-3 py-1.5 rounded-lg border hover:bg-muted/30 transition"
+          >
+            Clear Selection
+          </button>
+        )}
       </div>
 
       <div className="grid gap-3">
