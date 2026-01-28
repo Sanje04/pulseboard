@@ -137,19 +137,39 @@ export const getProjectUsers = async (req: AuthRequest, res: Response) => {
 
     // Fetch all memberships for this project and populate user details
     const memberships = await Membership.find({ projectId })
-      .populate('userId', 'name email')
+      .populate('userId', 'name email createdAt')
       .sort({ createdAt: 1 })
       .lean();
 
-    return res.json({
-      users: memberships.map((m: any) => ({
-        id: m.userId._id,
-        name: m.userId.name,
-        email: m.userId.email,
-        role: m.role,
-        joinedAt: m.createdAt
-      }))
-    });
+    return res.json(
+      memberships.map((m: any) => {
+        // Split name into firstName and lastName (simple approach)
+        const nameParts = m.userId.name.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        // Map our role to the expected frontend role
+        // OWNER -> admin, MEMBER -> manager, VIEWER -> cashier
+        const roleMap: Record<string, string> = {
+          'OWNER': 'admin',
+          'MEMBER': 'manager',
+          'VIEWER': 'cashier'
+        };
+
+        return {
+          id: m.userId._id,
+          firstName,
+          lastName,
+          username: m.userId.email.split('@')[0], // Use email prefix as username
+          email: m.userId.email,
+          phoneNumber: '', // We don't have phone numbers
+          status: 'active', // Default to active
+          role: roleMap[m.role] || 'cashier',
+          createdAt: m.createdAt,
+          updatedAt: m.createdAt // Use same as createdAt since we don't track updates
+        };
+      })
+    );
   } catch (error) {
     console.error("Get project users error:", error);
     return res.status(500).json({ error: "Internal server error" });

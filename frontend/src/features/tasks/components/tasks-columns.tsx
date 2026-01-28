@@ -36,7 +36,16 @@ export const tasksColumns: ColumnDef<Task>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Task' />
     ),
-    cell: ({ row }) => <div className='w-[80px]'>{row.getValue('id')}</div>,
+    cell: ({ row }) => {
+      const id = String(row.getValue('id'))
+      const shortId = id.length > 8 ? `${id.slice(0, 8)}...` : id
+
+      return (
+        <div className='w-[80px] font-mono text-xs text-muted-foreground'>
+          {shortId}
+        </div>
+      )
+    },
     enableSorting: false,
     enableHiding: false,
   },
@@ -46,7 +55,7 @@ export const tasksColumns: ColumnDef<Task>[] = [
       <DataTableColumnHeader column={column} title='Title' />
     ),
     meta: {
-      className: 'ps-1 max-w-0 w-2/3',
+      className: 'ps-1 max-w-md',
       tdClassName: 'ps-4',
     },
     cell: ({ row }) => {
@@ -57,6 +66,30 @@ export const tasksColumns: ColumnDef<Task>[] = [
           {label && <Badge variant='outline'>{label.label}</Badge>}
           <span className='truncate font-medium'>{row.getValue('title')}</span>
         </div>
+      )
+    },
+  },
+  {
+    accessorKey: 'description',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Description' />
+    ),
+    meta: {
+      className: 'ps-1 max-w-xs',
+      tdClassName: 'ps-4',
+    },
+    cell: ({ row }) => {
+      const description = (row.getValue('description') as string | null | undefined) ?? ''
+      const maxChars = 80
+      const displayText =
+        description.length > maxChars
+          ? `${description.slice(0, maxChars)}...`
+          : description
+
+      return (
+        <span className='block max-w-xs text-sm text-muted-foreground'>
+          {displayText}
+        </span>
       )
     },
   },

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -12,6 +12,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Sheet,
@@ -23,6 +24,8 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { SelectDropdown } from '@/components/select-dropdown'
+import { useSelectedProject } from '@/features/pulseboard/useSelectedProject'
+import { createTask, updateTask } from '@/tasks'
 import { type Task } from '../data/schema'
 
 type TaskMutateDrawerProps = {
@@ -36,6 +39,11 @@ const formSchema = z.object({
   status: z.string().min(1, 'Please select a status.'),
   label: z.string().min(1, 'Please select a label.'),
   priority: z.string().min(1, 'Please choose a priority.'),
+  description: z
+    .string()
+    .max(500, 'Description must be at most 500 characters.')
+    .optional()
+    .nullable(),
 })
 type TaskForm = z.infer<typeof formSchema>
 
@@ -46,21 +54,41 @@ export function TasksMutateDrawer({
 }: TaskMutateDrawerProps) {
   const isUpdate = !!currentRow
 
+  const { projectId } = useSelectedProject()
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: async (data: TaskForm) => {
+      if (!projectId) throw new Error('Select a project before editing tasks')
+
+      if (isUpdate && currentRow) {
+        return updateTask(projectId, currentRow.id, data)
+      }
+
+      return createTask(projectId, data)
+    },
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ['tasks', projectId] })
+      }
+      onOpenChange(false)
+      form.reset()
+    },
+  })
+
   const form = useForm<TaskForm>({
     resolver: zodResolver(formSchema),
-    defaultValues: currentRow ?? {
-      title: '',
-      status: '',
-      label: '',
-      priority: '',
+    defaultValues: {
+      title: currentRow?.title ?? '',
+      status: currentRow?.status ?? '',
+      label: currentRow?.label ?? '',
+      priority: currentRow?.priority ?? '',
+      description: currentRow?.description ?? '',
     },
   })
 
   const onSubmit = (data: TaskForm) => {
-    // do something with the form data
-    onOpenChange(false)
-    form.reset()
-    showSubmittedData(data)
+    mutation.mutate(data)
   }
 
   return (
@@ -196,6 +224,24 @@ export function TasksMutateDrawer({
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name='description'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      value={field.value ?? ''}
+                      placeholder='Optional description for this task (max 500 characters)'
+                      className='min-h-[80px] resize-y'
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </form>
         </Form>
         <SheetFooter className='gap-2'>
@@ -203,7 +249,7 @@ export function TasksMutateDrawer({
             <Button variant='outline'>Close</Button>
           </SheetClose>
           <Button form='tasks-form' type='submit'>
-            Save changes
+            {mutation.isPending ? 'Saving...' : 'Save changes'}
           </Button>
         </SheetFooter>
       </SheetContent>

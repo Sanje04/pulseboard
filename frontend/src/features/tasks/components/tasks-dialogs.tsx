@@ -1,11 +1,33 @@
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { TasksImportDialog } from './tasks-import-dialog'
 import { TasksMutateDrawer } from './tasks-mutate-drawer'
 import { useTasks } from './tasks-provider'
+import { useSelectedProject } from '@/features/pulseboard/useSelectedProject'
+import { deleteTask } from '@/tasks'
 
 export function TasksDialogs() {
   const { open, setOpen, currentRow, setCurrentRow } = useTasks()
+  const { projectId } = useSelectedProject()
+  const queryClient = useQueryClient()
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!projectId || !currentRow) {
+        throw new Error('Missing project or task to delete')
+      }
+      await deleteTask(projectId, currentRow.id)
+    },
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ['tasks', projectId] })
+      }
+      setOpen(null)
+      setTimeout(() => {
+        setCurrentRow(null)
+      }, 500)
+    },
+  })
   return (
     <>
       <TasksMutateDrawer
@@ -45,15 +67,9 @@ export function TasksDialogs() {
               }, 500)
             }}
             handleConfirm={() => {
-              setOpen(null)
-              setTimeout(() => {
-                setCurrentRow(null)
-              }, 500)
-              showSubmittedData(
-                currentRow,
-                'The following task has been deleted:'
-              )
+              deleteMutation.mutate()
             }}
+            isLoading={deleteMutation.isPending}
             className='max-w-md'
             title={`Delete this task: ${currentRow.id} ?`}
             desc={

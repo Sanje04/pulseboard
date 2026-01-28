@@ -5,6 +5,7 @@ import projectRoutes from "./routes/project.routes";
 import incidentRoutes from "./routes/incident.routes";
 import incidentUpdateRoutes from "./routes/incidentUpdate.routes";
 import auditRoutes from "./routes/audit.routes";
+import taskRoutes from "./routes/task.routes";
 
 const app = express();
 
@@ -23,6 +24,8 @@ app.use("/api/v1", incidentRoutes);
 app.use("/api/v1", incidentUpdateRoutes);
 
 app.use("/api/v1", auditRoutes);
+
+app.use("/api/v1", taskRoutes);
 
   
 export default app;
