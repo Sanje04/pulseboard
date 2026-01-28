@@ -15,3 +15,27 @@ export async function getProjectUsers(projectId: string): Promise<User[]> {
 
   return userListSchema.parse(items);
 }
+
+export interface InviteProjectUserInput {
+  email: string;
+  role: string;
+  desc?: string;
+}
+
+// Invite a user to a specific project. The backend is expected to:
+// - Create the user if needed
+// - Add them as a member of the given project (typically with status "invited")
+export async function inviteProjectUser(
+  projectId: string,
+  input: InviteProjectUserInput,
+): Promise<void> {
+  await apiRequest<void>(`/projects/${projectId}/users`, {
+    method: "POST",
+    body: JSON.stringify({
+      email: input.email,
+      role: input.role,
+      status: "invited",
+      desc: input.desc,
+    }),
+  });
+}

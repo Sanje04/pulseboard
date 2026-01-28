@@ -84,12 +84,13 @@ Express route definitions mapping HTTP endpoints to controllers
 3. `requireAuth` middleware validates token and attaches `userId` to request
 
 ### Role-Based Access Control
-Three roles with hierarchical permissions:
-- **OWNER**: Full control (create, update, delete, invite members)
+Four project-scoped roles with hierarchical permissions:
+- **OWNER**: Full control (create, update, delete, manage members)
+- **MANAGER**: All MEMBER permissions, plus can add/invite users to the project
 - **MEMBER**: Can create/update incidents, add comments
 - **VIEWER**: Read-only access to incidents and timelines
 
-The `requireProjectRole` middleware checks `Membership` records to enforce permissions.
+The `requireProjectRole` middleware and `getUserProjectRole` helper check `Membership` records to enforce permissions.
 
 ## 🌐 API Endpoints
 
@@ -117,12 +118,18 @@ Response: { project: { id, name, description, createdBy, createdAt } }
 
 GET /api/v1/projects
 Headers: Authorization: Bearer <token>
-Response: { items: [{ id, name, description, role }] }
+Response: { items: [{ id, name, description, role: "OWNER"|"MANAGER"|"MEMBER"|"VIEWER" }] }
 
 POST /api/v1/projects/:projectId/invite
 Headers: Authorization: Bearer <token>
 Body: { email, role? }
-Requires: OWNER role
+Requires: OWNER or MANAGER role
+Response: { membership: { id, projectId, userId, role } }
+
+POST /api/v1/projects/:projectId/users
+Headers: Authorization: Bearer <token>
+Body: { email, role? }
+Requires: OWNER or MANAGER role
 Response: { membership: { id, projectId, userId, role } }
 ```
 

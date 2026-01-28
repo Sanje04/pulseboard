@@ -22,10 +22,10 @@ export const users = Array.from({ length: 500 }, () => {
       'suspended',
     ]),
     role: faker.helpers.arrayElement([
-      'superadmin',
-      'admin',
-      'cashier',
+      'owner',
       'manager',
+      'member',
+      'viewer',
     ]),
     createdAt: faker.date.past(),
     updatedAt: faker.date.recent(),

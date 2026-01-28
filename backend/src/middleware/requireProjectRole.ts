@@ -1,11 +1,13 @@
 import { Response, NextFunction } from "express";
 import { AuthRequest } from "./requireAuth";
-import { Membership, Role } from "../models/membership";
+import { Role } from "../models/membership";
+import { getUserProjectRole } from "../services/project.service";
 
 const roleRank: Record<Role, number> = {
   VIEWER: 1,
   MEMBER: 2,
-  OWNER: 3,
+  MANAGER: 3,
+  OWNER: 4
 };
 
 export const requireProjectRole =
@@ -21,18 +23,13 @@ export const requireProjectRole =
         return res.status(400).json({ error: "Missing projectId" });
       }
 
-      const membership = await Membership.findOne({
-        projectId,
-        userId: req.userId,
-      })
-        .select("role")
-        .lean();
+      const role = await getUserProjectRole(req.userId, projectId);
 
-      if (!membership) {
+      if (!role) {
         return res.status(403).json({ error: "Forbidden" });
       }
 
-      const userRank = roleRank[membership.role];
+      const userRank = roleRank[role];
       const requiredRank = roleRank[minRole];
 
       if (userRank < requiredRank) {

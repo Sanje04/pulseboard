@@ -122,7 +122,8 @@ export function IncidentsPage({ projectId: projectIdFromRoute, initialIncidentId
     },
   });
 
-  const canCreateIncident = currentProject?.role === "OWNER" || currentProject?.role === "MEMBER";
+  const currentRole = String(currentProject?.role ?? "").toUpperCase();
+  const canCreateIncident = currentRole === "OWNER" || currentRole === "MEMBER";
   const canEditIncident = canCreateIncident;
 
   if (!projectId) {

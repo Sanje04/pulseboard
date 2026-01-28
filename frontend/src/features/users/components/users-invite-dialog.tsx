@@ -1,8 +1,11 @@
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MailPlus, Send } from 'lucide-react'
 import { showSubmittedData } from '@/lib/show-submitted-data'
+import { useSelectedProject } from '@/features/pulseboard/useSelectedProject'
+import { inviteProjectUser } from '@/users'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -46,15 +49,41 @@ export function UsersInviteDialog({
   open,
   onOpenChange,
 }: UserInviteDialogProps) {
+  const { projectId } = useSelectedProject()
+  const queryClient = useQueryClient()
+
   const form = useForm<UserInviteForm>({
     resolver: zodResolver(formSchema),
     defaultValues: { email: '', role: '', desc: '' },
   })
 
+  const inviteMutation = useMutation({
+    mutationFn: async (values: UserInviteForm) => {
+      if (!projectId) {
+        // Fallback: just log the data if no project is selected.
+        showSubmittedData(values)
+        return
+      }
+
+      await inviteProjectUser(projectId, {
+        email: values.email,
+        role: values.role,
+        desc: values.desc,
+      })
+    },
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({
+          queryKey: ['project-users', projectId],
+        })
+      }
+      form.reset()
+      onOpenChange(false)
+    },
+  })
+
   const onSubmit = (values: UserInviteForm) => {
-    form.reset()
-    showSubmittedData(values)
-    onOpenChange(false)
+    inviteMutation.mutate(values)
   }
 
   return (
@@ -140,7 +169,11 @@ export function UsersInviteDialog({
           <DialogClose asChild>
             <Button variant='outline'>Cancel</Button>
           </DialogClose>
-          <Button type='submit' form='user-invite-form'>
+          <Button
+            type='submit'
+            form='user-invite-form'
+            disabled={inviteMutation.isLoading}
+          >
             Invite <Send />
           </Button>
         </DialogFooter>

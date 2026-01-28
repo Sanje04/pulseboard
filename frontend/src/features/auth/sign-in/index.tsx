@@ -26,7 +26,7 @@ export function SignIn() {
         <CardContent>
           <UserAuthForm redirectTo={redirect} />
         </CardContent>
-        <CardFooter>
+        <CardFooter className='flex flex-col gap-3'>
           <p className='px-8 text-center text-sm text-muted-foreground'>
             By clicking sign in, you agree to our{' '}
             <a
@@ -43,6 +43,15 @@ export function SignIn() {
               Privacy Policy
             </a>
             .
+          </p>
+          <p className='text-center text-sm text-muted-foreground'>
+            Don&apos;t have an account?{' '}
+            <a
+              href='/sign-up'
+              className='font-medium text-primary underline underline-offset-4'
+            >
+              Sign up
+            </a>
           </p>
         </CardFooter>
       </Card>

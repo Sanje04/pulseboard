@@ -18,8 +18,11 @@ export function AppSidebar() {
   const auth = useAuthStore((s) => s.auth)
 
   const userForSidebar = {
-    name: auth.user?.email?.split('@')[0] ?? 'User',
-    email: auth.user?.email ?? 'user@example.com',
+    // Prefer the real user name from auth; fall back to email prefix, then generic label.
+    name:
+      auth.user?.name ||
+      (auth.user?.email ? auth.user.email.split('@')[0] : 'User'),
+    email: auth.user?.email ?? '',
     avatar: sidebarData.user.avatar,
   }
   return (

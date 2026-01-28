@@ -20,6 +20,19 @@ export function Users() {
   const navigate = route.useNavigate()
   const { projectId, currentProject } = useSelectedProject()
 
+  // Allow non-viewer project roles (OWNER / MANAGER / MEMBER) to manage users.
+  // This is tolerant to backend casing differences like "owner" vs "OWNER".
+  const projectRole = currentProject?.role
+    ? String(currentProject.role).toUpperCase()
+    : undefined
+  const canManageUsers = Boolean(
+    projectId &&
+      projectRole &&
+      (projectRole === 'OWNER' ||
+        projectRole === 'MANAGER' ||
+        projectRole === 'MEMBER')
+  )
+
   const usersQuery = useQuery({
     queryKey: ['project-users', projectId],
     queryFn: () => getProjectUsers(projectId!),
@@ -45,7 +58,7 @@ export function Users() {
               View and manage users who are part of the selected project.
             </p>
           </div>
-          <UsersPrimaryButtons />
+          <UsersPrimaryButtons canManageUsers={canManageUsers} />
         </div>
         {!projectId && (
           <div className='text-sm text-muted-foreground'>

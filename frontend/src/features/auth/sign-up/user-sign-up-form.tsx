@@ -6,8 +6,8 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
-import { signup, saveToken } from '@/lib/auth'
 import { cn } from '@/lib/utils'
+import { signup, saveToken } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -24,8 +24,7 @@ const formSchema = z
   .object({
     name: z.string().min(1, 'Please enter your name'),
     email: z.email({
-      error: (iss) =>
-        iss.input === '' ? 'Please enter your email' : undefined,
+      error: (iss) => (iss.input === '' ? 'Please enter your email' : undefined),
     }),
     password: z
       .string()
@@ -34,16 +33,15 @@ const formSchema = z
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match.",
     path: ['confirmPassword'],
+    message: "Passwords don't match",
   })
 
 type SignUpFormValues = z.infer<typeof formSchema>
 
-export function SignUpForm({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLFormElement>) {
+interface UserSignUpFormProps extends React.HTMLAttributes<HTMLFormElement> {}
+
+export function UserSignUpForm({ className, ...props }: UserSignUpFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   const { auth } = useAuthStore()
@@ -64,12 +62,14 @@ export function SignUpForm({
     try {
       const res = await signup(data.name, data.email, data.password)
 
+      // Optionally auto-login user after signup if backend returns accessToken and user
       if (res.accessToken && res.user) {
         saveToken(res.accessToken)
         auth.setUser(res.user)
         auth.setAccessToken(res.accessToken)
         navigate({ to: '/', replace: true })
       } else {
+        // If backend only creates the account, send them to sign-in
         navigate({ to: '/sign-in', replace: true })
       }
 
@@ -108,7 +108,12 @@ export function SignUpForm({
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder='name@example.com' {...field} />
+                <Input
+                  placeholder='name@example.com'
+                  type='email'
+                  autoComplete='email'
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -148,6 +153,7 @@ export function SignUpForm({
             </FormItem>
           )}
         />
+
         <Button className='mt-2' disabled={isLoading}>
           {isLoading ? <Loader2 className='animate-spin' /> : <UserPlus />}
           Sign up
