@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listIncidents, getIncident, getIncidentTimeline, addComment, createIncident, deleteIncident, updateIncident, type IncidentSeverity, type IncidentStatus } from "./incidents.api";
 import { useSelectedProject } from "./useSelectedProject";
@@ -18,6 +18,8 @@ export function IncidentsPage({ projectId: projectIdFromRoute, initialIncidentId
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [pendingUpdates, setPendingUpdates] = useState<{ status?: IncidentStatus; severity?: IncidentSeverity } | null>(null);
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<"default" | "title" | "severity" | "status">("default");
   const queryClient = useQueryClient();
 
   const [newIncident, setNewIncident] = useState({
@@ -55,6 +57,40 @@ export function IncidentsPage({ projectId: projectIdFromRoute, initialIncidentId
   });
 
   const incidents = incidentsQ.data?.incidents ?? [];
+
+  const filteredIncidents = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    let result = incidents;
+
+    if (term) {
+      result = result.filter((i) => {
+        return (
+          i.title.toLowerCase().includes(term) ||
+          (i.description ?? "").toLowerCase().includes(term) ||
+          i.status.toLowerCase().includes(term) ||
+          i.severity.toLowerCase().includes(term)
+        );
+      });
+    }
+
+    if (sortKey === "default") {
+      return result;
+    }
+
+    const copy = [...result];
+
+    if (sortKey === "title") {
+      copy.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortKey === "severity") {
+      const order: Record<string, number> = { SEV1: 1, SEV2: 2, SEV3: 3, SEV4: 4 };
+      copy.sort((a, b) => (order[a.severity] ?? 99) - (order[b.severity] ?? 99));
+    } else if (sortKey === "status") {
+      const order: Record<string, number> = { OPEN: 1, MITIGATING: 2, RESOLVED: 3 };
+      copy.sort((a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99));
+    }
+
+    return copy;
+  }, [incidents, search, sortKey]);
 
   const createMutation = useMutation({
     mutationFn: async (input: { title: string; description?: string; severity: IncidentSeverity }) => {
@@ -293,10 +329,30 @@ export function IncidentsPage({ projectId: projectIdFromRoute, initialIncidentId
             </DialogContent>
           </Dialog>
         </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search incidents..."
+            className="w-full sm:max-w-xs rounded-lg border bg-transparent px-3 py-1.5 text-sm"
+          />
+          <select
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as typeof sortKey)}
+            className="w-full sm:w-auto rounded-lg border bg-transparent px-2 py-1.5 text-xs text-muted-foreground"
+          >
+            <option value="default">Sort: Default</option>
+            <option value="title">Sort: Title (A–Z)</option>
+            <option value="severity">Sort: Severity (SEV1→SEV4)</option>
+            <option value="status">Sort: Status (Open→Resolved)</option>
+          </select>
+        </div>
         {incidentsQ.isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}
         {incidentsQ.isError && <div className="text-sm text-red-500">{(incidentsQ.error as Error).message}</div>}
 
-        {incidents.map((i) => (
+        {filteredIncidents.map((i) => (
           <div
             key={i.id}
             className={`relative rounded-xl border p-4 transition ${

@@ -73,14 +73,33 @@ export const listIncidents = async (req: AuthRequest, res: Response) => {
     if (!req.userId) return res.status(401).json({ error: "Unauthorized" });
 
     const { projectId } = req.params;
-    const { status } = req.query;
+    const { status, q, sortBy, sortOrder } = req.query;
 
+    // Build filter
     const filter: any = { projectId, deletedAt: null };
     if (status && typeof status === "string") {
       filter.status = status;
     }
 
-    const incidents = await Incident.find(filter).sort({ createdAt: -1 });
+    // Add search functionality
+    if (q && typeof q === "string" && q.trim()) {
+      filter.$or = [
+        { title: { $regex: q.trim(), $options: "i" } },
+        { description: { $regex: q.trim(), $options: "i" } }
+      ];
+    }
+
+    // Build sort
+    let sort: any = { createdAt: -1 }; // default sort
+    if (sortBy && typeof sortBy === "string") {
+      const validSortFields = ["title", "severity", "status", "createdAt", "updatedAt"];
+      if (validSortFields.includes(sortBy)) {
+        const order = sortOrder === "asc" ? 1 : -1;
+        sort = { [sortBy]: order };
+      }
+    }
+
+    const incidents = await Incident.find(filter).sort(sort);
 
     return res.json({
       incidents: incidents.map((inc) => ({
