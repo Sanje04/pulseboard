@@ -85,3 +85,8 @@
     height: 0;
   }
 }
+
+/* Hide TanStack Router Devtools (floating button + panel) */
+.TanStackRouterDevtools {
+  display: none !important;
+}

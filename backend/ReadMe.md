@@ -1,6 +1,6 @@
 Collecting workspace information# PulseBoard Backend
 
-A TypeScript/Express.js backend for an incident management platform with project-based access control, audit logging, and timeline tracking.
+A TypeScript/Express.js backend for a comprehensive project management and incident tracking platform with role-based access control, task management, audit logging, and timeline tracking.
 
 ## 📁 Project Structure
 
@@ -17,29 +17,37 @@ backend/
 │   │   ├── project.controller.ts       # Project management
 │   │   ├── incident.controller.ts      # Incident CRUD operations
 │   │   ├── incidentUpdate.controller.ts # Timeline & status changes
+│   │   ├── task.controller.ts          # Task management
 │   │   └── audit.controller.ts         # Audit log queries
 │   ├── middleware/
 │   │   ├── requireAuth.ts              # JWT authentication
-│   │   └── requireProjectRole.ts       # Role-based access control
+│   │   ├── requireProjectRole.ts       # Role-based access control
+│   │   └── errorHandler.ts             # Centralized error handling
 │   ├── models/
 │   │   ├── user.ts            # User schema
 │   │   ├── project.ts         # Project schema
 │   │   ├── membership.ts      # User-project relationships
 │   │   ├── incident.ts        # Incident schema
 │   │   ├── incidentUpdate.ts  # Timeline entries
+│   │   ├── task.ts            # Task schema
 │   │   └── auditLog.ts        # Audit trail
 │   ├── routes/
 │   │   ├── auth.routes.ts
 │   │   ├── project.routes.ts
 │   │   ├── incident.routes.ts
 │   │   ├── incidentUpdate.routes.ts
+│   │   ├── task.routes.ts
 │   │   └── audit.routes.ts
+│   ├── services/
+│   │   ├── auth.service.ts    # Authentication business logic
+│   │   └── project.service.ts # Project business logic
 │   └── utils/
 │       ├── hash.ts            # Password hashing (bcrypt)
 │       └── jwt.ts             # JWT token operations
 ├── .env                       # Environment variables
 ├── package.json
-└── tsconfig.json
+├── tsconfig.json
+└── migrate-status.js          # Database migration utility
 ```
 
 ## 📂 Directory Breakdown
@@ -54,11 +62,13 @@ Business logic for all API endpoints:
 - **project.controller.ts**: Create projects, list user projects, invite members
 - **incident.controller.ts**: Create, read, update incidents with field-level tracking
 - **incidentUpdate.controller.ts**: Add comments, change status, fetch timeline
+- **task.controller.ts**: Create, update, delete, and list tasks with status/label/priority management
 - **audit.controller.ts**: Query audit logs for compliance/debugging
 
 ### `/middleware`
 - **requireAuth.ts**: Validates JWT tokens, attaches `userId` to requests
-- **requireProjectRole.ts**: Enforces role-based permissions (OWNER > MEMBER > VIEWER)
+- **requireProjectRole.ts**: Enforces role-based permissions (OWNER > MANAGER > MEMBER > VIEWER)
+- **errorHandler.ts**: Centralized error handling and logging
 
 ### `/models`
 Mongoose schemas with TypeScript interfaces:
@@ -67,10 +77,15 @@ Mongoose schemas with TypeScript interfaces:
 - **membership.ts**: Many-to-many relationship (userId ↔ projectId + role)
 - **incident.ts**: Incidents with severity, status, soft deletes
 - **incidentUpdate.ts**: Timeline entries (comments, field changes)
+- **task.ts**: Tasks with status, labels, priority, and soft deletes
 - **auditLog.ts**: Immutable audit trail for compliance
 
 ### `/routes`
 Express route definitions mapping HTTP endpoints to controllers
+
+### `/services`
+- **auth.service.ts**: Authentication business logic (login, registration, token management)
+- **project.service.ts**: Project-related business logic and user role management
 
 ### `/utils`
 - **hash.ts**: bcrypt password hashing and verification
@@ -87,8 +102,8 @@ Express route definitions mapping HTTP endpoints to controllers
 Four project-scoped roles with hierarchical permissions:
 - **OWNER**: Full control (create, update, delete, manage members)
 - **MANAGER**: All MEMBER permissions, plus can add/invite users to the project
-- **MEMBER**: Can create/update incidents, add comments
-- **VIEWER**: Read-only access to incidents and timelines
+- **MEMBER**: Can create/update incidents and tasks, add comments
+- **VIEWER**: Read-only access to incidents, tasks, and timelines
 
 The `requireProjectRole` middleware and `getUserProjectRole` helper check `Membership` records to enforce permissions.
 
@@ -189,6 +204,38 @@ Requires: VIEWER role
 Response: { items: [{ id, event, actorId, entityType, entityId, metadata, createdAt }] }
 ```
 
+### Tasks
+```http
+POST /api/v1/projects/:projectId/tasks
+Headers: Authorization: Bearer <token>
+Body: { title, description?, label: "DOCUMENTATION"|"FEATURE"|"BUG", priority?: "HIGH"|"MEDIUM"|"LOW", status?: "TODO"|"IN_PROGRESS"|"BACKLOG"|"CANCELLED"|"DONE" }
+Requires: MEMBER role
+Response: { task: { id, projectId, title, description, status, label, priority, createdAt, updatedAt } }
+
+GET /api/v1/projects/:projectId/tasks
+Headers: Authorization: Bearer <token>
+Query: ?status=TODO|IN_PROGRESS|BACKLOG|CANCELLED|DONE&label=DOCUMENTATION|FEATURE|BUG&priority=HIGH|MEDIUM|LOW
+Requires: VIEWER role
+Response: [{ id, projectId, title, description, status, label, priority, createdAt, updatedAt }]
+
+GET /api/v1/projects/:projectId/tasks/:taskId
+Headers: Authorization: Bearer <token>
+Requires: VIEWER role
+Response: { task: { id, projectId, title, description, status, label, priority, createdAt, updatedAt } }
+
+PATCH /api/v1/projects/:projectId/tasks/:taskId
+Headers: Authorization: Bearer <token>
+Body: { title?, description?, status?, label?, priority? }
+Requires: MEMBER role
+Response: { task: { id, projectId, title, description, status, label, priority, updatedAt } }
+
+DELETE /api/v1/projects/:projectId/tasks/:taskId
+Headers: Authorization: Bearer <token>
+Requires: MEMBER role
+Response: { message: "Task deleted successfully" }
+Note: Soft delete using deletedAt timestamp
+```
+
 ## 🗄️ Data Models
 
 ### User
@@ -217,6 +264,14 @@ Response: { items: [{ id, event, actorId, entityType, entityId, metadata, create
 - `projectId`, `actorId`, `event`, `entityType`, `entityId`, `metadata`
 - Immutable audit trail for compliance
 - Events: INCIDENT_CREATED, INCIDENT_COMMENT_ADDED, INCIDENT_STATUS_CHANGED, etc.
+
+### Task
+- `projectId`, `title`, `description`, `status`, `label`, `priority`, `createdBy`
+- Status: TODO, IN_PROGRESS, BACKLOG, CANCELLED, DONE
+- Label: DOCUMENTATION, FEATURE, BUG
+- Priority: HIGH, MEDIUM, LOW
+- Soft deletes via `deletedAt` field
+- Indexed on `projectId + createdAt`, `projectId + status`, `projectId + label`, `projectId + priority`
 
 ## 🚀 Getting Started
 
@@ -250,22 +305,30 @@ npm start
 
 ## 🔍 Key Features
 
-### 1. **Field-Level Change Tracking**
+### 1. **Task Management System**
+Full-featured task tracking with:
+- Multiple statuses: TODO, IN_PROGRESS, BACKLOG, CANCELLED, DONE
+- Categorization via labels: DOCUMENTATION, FEATURE, BUG
+- Prioritization: HIGH, MEDIUM, LOW
+- Filtering capabilities by status, label, and priority
+- Soft deletes for data retention
+
+### 2. **Field-Level Change Tracking**
 When updating incidents via `updateIncidentInProject`:
 - Diffs old vs new values for `title`, `description`, `severity`
 - Creates separate `IncidentUpdate` entries for each changed field
 - Stores description **length changes** (not full text) to prevent timeline bloat
 
-### 2. **Dual Logging System**
+### 3. **Dual Logging System**
 - **Timeline** (`IncidentUpdate`): User-facing activity feed per incident
 - **Audit Log** (`AuditLog`): System-wide compliance trail with metadata
 
-### 3. **Role-Based Access**
+### 4. **Role-Based Access**
 - Hierarchical permissions enforced by `requireProjectRole`
-- OWNER ≥ MEMBER ≥ VIEWER
+- OWNER ≥ MANAGER ≥ MEMBER ≥ VIEWER
 
-### 4. **Soft Deletes**
-- `Incident` model has `deletedAt` field
+### 5. **Soft Deletes**
+- `Incident` and `Task` models have `deletedAt` field
 - Queries filter `deletedAt: null` to exclude deleted records
 
 ## 📊 Database Indexes
@@ -275,6 +338,7 @@ Optimized for common queries:
 - **Membership**: `(projectId, userId)` (unique), `userId`
 - **Incident**: `projectId + createdAt`, `projectId + status + createdAt`
 - **IncidentUpdate**: `incidentId + createdAt`
+- **Task**: `projectId + createdAt`, `projectId + status`, `projectId + label`, `projectId + priority`
 - **AuditLog**: `projectId + createdAt`, `entityId`
 
 ## 🛡️ Security
@@ -295,7 +359,10 @@ Optimized for common queries:
 6. **Update Incident** → `PATCH /api/v1/projects/:projectId/incidents/:incidentId`
 7. **Add Comment** → `POST /api/v1/projects/:projectId/incidents/:incidentId/comments`
 8. **View Timeline** → `GET /api/v1/projects/:projectId/incidents/:incidentId/timeline`
-9. **Check Audit Logs** → `GET /api/v1/projects/:projectId/audit`
+9. **Create Task** → `POST /api/v1/projects/:projectId/tasks`
+10. **Update Task Status** → `PATCH /api/v1/projects/:projectId/tasks/:taskId`
+11. **List Tasks** → `GET /api/v1/projects/:projectId/tasks?status=IN_PROGRESS`
+12. **Check Audit Logs** → `GET /api/v1/projects/:projectId/audit`
 
 ## 🔧 Technologies
 
@@ -309,8 +376,12 @@ Optimized for common queries:
 ---
 
 **Note**: This README reflects the current implementation. For production use, consider adding:
-- Rate limiting
+- Rate limiting (e.g., express-rate-limit)
 - Request validation library (e.g., Zod, Joi)
 - Pagination for list endpoints
 - Websocket support for real-time updates
 - Comprehensive error logging (e.g., Winston, Pino)
+- API documentation (e.g., Swagger/OpenAPI)
+- Unit and integration tests
+- Docker containerization
+- CI/CD pipeline configuration
